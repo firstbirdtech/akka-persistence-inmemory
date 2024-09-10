@@ -1,17 +1,16 @@
 package akka.persistence.inmemory.util
 
-import java.util.UUID
-
 import akka.persistence.query.TimeBasedUUID
 
-import scala.compat.Platform
+import java.util.UUID
+
 import scala.util.Random
 
 object UUIDs {
   implicit val TimeBasedUUIDOrdering: Ordering[TimeBasedUUID] = new Ordering[TimeBasedUUID] {
     override def compare(x: TimeBasedUUID, y: TimeBasedUUID): Int = {
-      val xuuid: UUID = x.value
-      val yuuid: UUID = y.value
+      val xuuid: UUID              = x.value
+      val yuuid: UUID              = y.value
       val comparedByTimestamp: Int = xuuid.timestamp().compare(yuuid.timestamp())
       if (comparedByTimestamp == 0) {
         val comparedByClock: Int = xuuid.clockSequence().compare(yuuid.clockSequence())
@@ -23,7 +22,7 @@ object UUIDs {
   }
 
   final val MIN_CLOCK_SEQ_AND_NODE: Long = 0x8080808080808080L
-  final val NODE: Long = 256475483242313L
+  final val NODE: Long                   = 256475483242313L
 
   def startOf(timestamp: Long): UUID = {
     new UUID(makeMSB(UUIDUtil.fromUnixTimestamp(timestamp)), MIN_CLOCK_SEQ_AND_NODE)
@@ -36,7 +35,7 @@ object UUIDs {
   final val ClockSeqAndNode: Long = {
     val clock: Long = new Random(System.currentTimeMillis()).nextLong()
     0L |
-      (clock & 0x0000000000003FFFL) << 48 |
+      (clock & 0x0000000000003fffL) << 48 |
       0x8000000000000000L |
       NODE
   }
@@ -50,7 +49,8 @@ object UUIDs {
   }
 
   def unixTimestamp(uuid: UUID): Long = {
-    require(uuid.version() == 1, s"Can only retrieve the unix timestamp for version 1 uuid (provided version ${uuid.version})")
+    require(uuid.version() == 1,
+            s"Can only retrieve the unix timestamp for version 1 uuid (provided version ${uuid.version})")
     val timestamp = uuid.timestamp()
     (timestamp / 10000) + UUIDUtil.START_EPOCH
   }

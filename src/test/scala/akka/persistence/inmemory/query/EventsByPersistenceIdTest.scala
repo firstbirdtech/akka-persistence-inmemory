@@ -23,7 +23,7 @@ import scala.concurrent.duration._
 class EventsByPersistenceIdTest extends QueryTestSpec {
 
   val expectTime: FiniteDuration = 300.millis
-  val nowTs = System.currentTimeMillis()
+  val nowTs                      = System.currentTimeMillis()
 
   it should "not find any events for unknown pid" in {
     withEventsByPersistenceId()("unkown-pid", 0L, Long.MaxValue) { tp =>

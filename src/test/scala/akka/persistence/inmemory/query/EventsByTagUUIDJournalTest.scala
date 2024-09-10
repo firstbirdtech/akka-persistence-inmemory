@@ -20,15 +20,13 @@ import akka.persistence.query._
 
 import scala.concurrent.duration._
 
-/**
- * This test sets the offset-mode to uuid, this means that when a NoOffset type is
- * requested, the offset type in the Envelope will be a TimeBasedUUID else it would
- * be a Sequence
- */
+/** This test sets the offset-mode to uuid, this means that when a NoOffset type is requested, the offset type in the
+  * Envelope will be a TimeBasedUUID else it would be a Sequence
+  */
 class EventsByTagUUIDJournalTest extends QueryTestSpec("uuid-offset-mode.conf") {
 
   final val NoMsgTime: FiniteDuration = 300.millis
-  val nowTs = System.currentTimeMillis()
+  val nowTs                           = System.currentTimeMillis()
 
   it should "not find events for empty journal using unknown tag for timebased uuid" in {
     withEventsByTag()("unknown", getNowUUID) { tp =>
@@ -178,4 +176,3 @@ class EventsByTagUUIDJournalTest extends QueryTestSpec("uuid-offset-mode.conf") 
     }
   }
 }
-

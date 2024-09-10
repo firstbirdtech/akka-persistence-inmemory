@@ -16,13 +16,11 @@
 
 package akka.persistence.inmemory.query
 
-import akka.persistence.query.{ EventEnvelope, NoOffset, TimeBasedUUID }
+import akka.persistence.query.{EventEnvelope, NoOffset, TimeBasedUUID}
 
-/**
- * This test sets the offset-mode to uuid, this means that when a NoOffset type is
- * requested, the offset type in the Envelope will be a TimeBasedUUID else it would
- * be a Sequence
- */
+/** This test sets the offset-mode to uuid, this means that when a NoOffset type is requested, the offset type in the
+  * Envelope will be a TimeBasedUUID else it would be a Sequence
+  */
 class CurrentEventsByTagUUIDJournalTest extends QueryTestSpec("uuid-offset-mode.conf") {
 
   it should "not find events for empty journal using unknown tag using timebased uuid" in {

@@ -16,27 +16,26 @@
 
 package akka.persistence.inmemory.util
 
-import java.io.InputStream
-
 import akka.NotUsed
 import akka.stream.IOResult
-import akka.stream.scaladsl.{ Source, StreamConverters }
+import akka.stream.scaladsl.{Source, StreamConverters}
 import akka.util.ByteString
 
-import scala.concurrent.Future
-import scala.io.{ Source => ScalaIOSource }
-import scala.util.Try
-import javax.xml.stream.XMLEventReader
+import java.io.InputStream
 import javax.xml.stream.events.XMLEvent
-import javax.xml.stream.XMLInputFactory
-import scala.jdk.CollectionConverters._
+import javax.xml.stream.{XMLEventReader, XMLInputFactory}
+
+import scala.concurrent.Future
+import scala.io.{Source => ScalaIOSource}
+import scala.util.Try
 
 object ClasspathResources extends ClasspathResources
 
 trait ClasspathResources {
   def withInputStream[T](fileName: String)(f: InputStream => T): T = {
     val is = fromClasspathAsStream(fileName)
-    try f(is) finally Try(is.close())
+    try f(is)
+    finally Try(is.close())
   }
 
   def withXMLEventReader[T](fileName: String)(f: XMLEventReader => T): T =
@@ -46,10 +45,11 @@ trait ClasspathResources {
 
   def withXMLEventSource[T](fileName: String)(f: Source[XMLEvent, NotUsed] => T): T =
     withXMLEventReader(fileName) { reader =>
-      f(Source.fromIterator(() => new Iterator[XMLEvent] {
-        override def hasNext: Boolean = reader.hasNext
-        override def next(): XMLEvent = reader.nextEvent()
-      }))
+      f(Source.fromIterator(() =>
+        new Iterator[XMLEvent] {
+          override def hasNext: Boolean = reader.hasNext
+          override def next(): XMLEvent = reader.nextEvent()
+        }))
     }
 
   def withByteStringSource[T](fileName: String)(f: Source[ByteString, Future[IOResult]] => T): T =

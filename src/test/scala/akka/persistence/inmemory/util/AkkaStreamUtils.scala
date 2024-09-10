@@ -22,10 +22,11 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.stream.testkit.TestSubscriber
 import akka.stream.testkit.scaladsl.TestSink
-import org.scalatest.{ Suite }
-import scala.collection.immutable._
-import org.scalatest.matchers.should.Matchers
+import org.scalatest.Suite
 import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+
+import scala.collection.immutable._
 
 trait AkkaStreamUtils extends AnyFlatSpec with Matchers { _s: Suite =>
   implicit def mat: Materializer

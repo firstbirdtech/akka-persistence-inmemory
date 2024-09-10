@@ -16,12 +16,11 @@
 
 package akka.persistence.inmemory.query
 
-import akka.persistence.query.{ EventEnvelope, NoOffset, Sequence }
+import akka.persistence.query.{EventEnvelope, NoOffset, Sequence}
 
-/**
- * This test sets the offset-mode to sequence, this means that when a NoOffset type is
- * requested, the offset type in the Envelope will be a Sequence
- */
+/** This test sets the offset-mode to sequence, this means that when a NoOffset type is requested, the offset type in
+  * the Envelope will be a Sequence
+  */
 class CurrentEventsByTagSequenceJournalTest extends QueryTestSpec {
 
   val nowTs = System.currentTimeMillis()

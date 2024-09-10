@@ -17,37 +17,37 @@
 package akka.persistence.inmemory
 package snapshot
 
-import java.util.concurrent.TimeUnit
-
-import akka.actor.{ ActorRef, ActorSystem }
+import akka.actor.{ActorRef, ActorSystem}
 import akka.pattern.ask
 import akka.persistence.inmemory.extension.InMemorySnapshotStorage._
 import akka.persistence.inmemory.extension.StorageExtensionProvider
 import akka.persistence.serialization.Snapshot
 import akka.persistence.snapshot.SnapshotStore
-import akka.persistence.{ SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria }
+import akka.persistence.{SelectedSnapshot, SnapshotMetadata, SnapshotSelectionCriteria}
 import akka.serialization.SerializationExtension
-import akka.stream.{ ActorMaterializer, Materializer }
 import akka.util.Timeout
 import com.typesafe.config.Config
-
-import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
 import scalaz.OptionT
 import scalaz.std.AllInstances._
 
+import java.util.concurrent.TimeUnit
+
+import scala.concurrent.duration._
+import scala.concurrent.{ExecutionContext, Future}
+
 class InMemorySnapshotStore(config: Config) extends SnapshotStore {
-  implicit val system: ActorSystem = context.system
+  implicit val system: ActorSystem  = context.system
   implicit val ec: ExecutionContext = context.dispatcher
-  implicit val timeout: Timeout = Timeout(config.getDuration("ask-timeout", TimeUnit.SECONDS) -> SECONDS)
-  val serialization = SerializationExtension(system)
+  implicit val timeout: Timeout     = Timeout(config.getDuration("ask-timeout", TimeUnit.SECONDS) -> SECONDS)
+  val serialization                 = SerializationExtension(system)
 
   val snapshots: ActorRef = StorageExtensionProvider(system).snapshotStorage(config)
 
   def deserialize(snapshotEntry: SnapshotEntry): Future[Option[Snapshot]] =
     Future.fromTry(serialization.deserialize(snapshotEntry.snapshot, classOf[Snapshot])).map(Option(_))
 
-  override def loadAsync(persistenceId: String, criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
+  override def loadAsync(persistenceId: String,
+                         criteria: SnapshotSelectionCriteria): Future[Option[SelectedSnapshot]] = {
     val maybeEntry: Future[Option[SnapshotEntry]] = criteria match {
       case SnapshotSelectionCriteria(Long.MaxValue, Long.MaxValue, _, _) =>
         (snapshots ? SnapshotForMaxSequenceNr(persistenceId, Long.MaxValue)).mapTo[Option[SnapshotEntry]]
@@ -56,11 +56,12 @@ class InMemorySnapshotStore(config: Config) extends SnapshotStore {
       case SnapshotSelectionCriteria(maxSequenceNr, Long.MaxValue, _, _) =>
         (snapshots ? SnapshotForMaxSequenceNr(persistenceId, maxSequenceNr)).mapTo[Option[SnapshotEntry]]
       case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, _, _) =>
-        (snapshots ? SnapshotForMaxSequenceNrAndMaxTimestamp(persistenceId, maxSequenceNr, maxTimestamp)).mapTo[Option[SnapshotEntry]]
+        (snapshots ? SnapshotForMaxSequenceNrAndMaxTimestamp(persistenceId, maxSequenceNr, maxTimestamp))
+          .mapTo[Option[SnapshotEntry]]
     }
 
     val result = for {
-      entry <- OptionT(maybeEntry)
+      entry    <- OptionT(maybeEntry)
       snapshot <- OptionT(deserialize(entry))
     } yield SelectedSnapshot(SnapshotMetadata(entry.persistenceId, entry.sequenceNumber, entry.created), snapshot.data)
 
@@ -69,7 +70,7 @@ class InMemorySnapshotStore(config: Config) extends SnapshotStore {
 
   override def saveAsync(metadata: SnapshotMetadata, snapshot: Any): Future[Unit] = for {
     snapshot <- Future.fromTry(serialization.serialize(Snapshot(snapshot)))
-    _ <- snapshots ? Save(metadata.persistenceId, metadata.sequenceNr, metadata.timestamp, snapshot)
+    _        <- snapshots ? Save(metadata.persistenceId, metadata.sequenceNr, metadata.timestamp, snapshot)
   } yield ()
 
   override def deleteAsync(metadata: SnapshotMetadata): Future[Unit] =

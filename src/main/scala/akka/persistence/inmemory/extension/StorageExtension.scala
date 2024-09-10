@@ -30,15 +30,13 @@ object StorageExtensionProvider extends ExtensionId[StorageExtension] with Exten
     val storageName = system.settings.config.getString("inmemory-storage.class")
     system.log.info("Using storage {}", storageName)
     val storageClass = system.dynamicAccess.getClassFor[StorageExtension](storageName).get
-    val storage = storageClass.getDeclaredConstructor(classOf[ExtendedActorSystem]).newInstance(system)
+    val storage      = storageClass.getDeclaredConstructor(classOf[ExtendedActorSystem]).newInstance(system)
     storage
   }
 
   override def lookup: ExtensionId[_ <: Extension] = StorageExtensionProvider
 
-  /**
-   * Java API
-   */
+  /** Java API
+    */
   override def get(as: ActorSystem): StorageExtension = apply(as)
 }
-
