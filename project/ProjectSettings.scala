@@ -1,7 +1,6 @@
 import sbt._
 import sbt.Keys._
-import scalariform.formatter.preferences._
-import com.typesafe.sbt.SbtScalariform
+import scalafix.sbt.ScalafixPlugin.autoImport._
 
 object ProjectSettings extends AutoPlugin {
   final val AkkaVersion = "2.6.21"
@@ -9,7 +8,7 @@ object ProjectSettings extends AutoPlugin {
   final val ScalaTestVersion = "3.2.19"
   final val LogbackVersion = "1.5.8"
 
-  override def requires = plugins.JvmPlugin && SbtScalariform
+  override def requires = plugins.JvmPlugin
   override def trigger = allRequirements
 
   override def projectSettings = Seq(
@@ -22,10 +21,12 @@ object ProjectSettings extends AutoPlugin {
     scalaVersion := "2.13.14",
     crossScalaVersions := Seq("2.13.14", "3.3.3"),
     crossVersion := CrossVersion.binary,
+    semanticdbEnabled := true,
+    semanticdbVersion := scalafixSemanticdb.revision,
 
     licenses := Seq(("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt"))),
 
-  ) ++ compilerSettings ++ scalariFormSettings ++ resolverSettings ++ librarySettings ++ testSettings
+  ) ++ compilerSettings ++ resolverSettings ++ librarySettings ++ testSettings
 
   lazy val librarySettings = Seq(
     libraryDependencies += "com.typesafe.akka" %% "akka-actor" % AkkaVersion,
@@ -49,16 +50,6 @@ object ProjectSettings extends AutoPlugin {
     Test / testOptions += Tests.Argument("-oDF"),
   )
 
-  lazy val scalariFormSettings = Seq(
-    SbtScalariform.autoImport.scalariformPreferences := {
-      SbtScalariform.autoImport.scalariformPreferences.value
-        .setPreference(AlignSingleLineCaseStatements, true)
-        .setPreference(AlignSingleLineCaseStatements.MaxArrowIndent, 100)
-        .setPreference(DoubleIndentConstructorArguments, true)
-        .setPreference(DanglingCloseParenthesis, Preserve)
-    }
-  )
-
   lazy val resolverSettings = Seq(
     resolvers ++= Resolver.sonatypeOssRepos("public"),
     resolvers += Resolver.typesafeRepo("releases"),
@@ -74,7 +65,8 @@ object ProjectSettings extends AutoPlugin {
       "-feature",
       "-unchecked",
       "-language:higherKinds",
-      "-language:implicitConversions"
+      "-language:implicitConversions",
+      "-Wunused"
     )
 
     if (ScalaArtifacts.isScala3(scalaVersion.value)) {
