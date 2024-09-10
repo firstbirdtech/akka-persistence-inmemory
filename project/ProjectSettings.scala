@@ -4,10 +4,10 @@ import scalariform.formatter.preferences._
 import com.typesafe.sbt.SbtScalariform
 
 object ProjectSettings extends AutoPlugin {
-  final val AkkaVersion = "2.4.20"
-  final val ScalazVersion = "7.2.28"
-  final val ScalaTestVersion = "3.0.8"
-  final val LogbackVersion = "1.2.3"
+  final val AkkaVersion = "2.6.21"
+  final val ScalazVersion = "7.3.8"
+  final val ScalaTestVersion = "3.2.19"
+  final val LogbackVersion = "1.5.8"
 
   override def requires = plugins.JvmPlugin && SbtScalariform
   override def trigger = allRequirements
@@ -19,8 +19,8 @@ object ProjectSettings extends AutoPlugin {
     description := "A plugin for storing events in an event journal akka-persistence-inmemory",
     startYear := Some(2014),
 
-    scalaVersion := "2.12.6",
-    crossScalaVersions := Seq("2.11.12", "2.12.8"),
+    scalaVersion := "2.13.14",
+    crossScalaVersions := Seq("2.13.14", "3.3.3"),
     crossVersion := CrossVersion.binary,
 
     licenses := Seq(("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt"))),
@@ -30,7 +30,7 @@ object ProjectSettings extends AutoPlugin {
   lazy val librarySettings = Seq(
     libraryDependencies += "com.typesafe.akka" %% "akka-actor" % AkkaVersion,
     libraryDependencies += "com.typesafe.akka" %% "akka-persistence" % AkkaVersion,
-    libraryDependencies += "com.typesafe.akka" %% "akka-persistence-query-experimental" % AkkaVersion,
+    libraryDependencies += "com.typesafe.akka" %% "akka-persistence-query" % AkkaVersion,
     libraryDependencies += "com.typesafe.akka" %% "akka-stream" % AkkaVersion,
     libraryDependencies += "org.scalaz" %% "scalaz-core" % ScalazVersion,
     libraryDependencies += "ch.qos.logback" % "logback-classic" % LogbackVersion % Test,
@@ -66,18 +66,22 @@ object ProjectSettings extends AutoPlugin {
   )
 
   lazy val compilerSettings = Seq(
-    scalacOptions ++= Seq(
+    scalacOptions ++= {
+      val commonOptions = Seq(
       "-encoding",
       "UTF-8",
       "-deprecation",
       "-feature",
       "-unchecked",
-      "-Xlog-reflective-calls",
       "-language:higherKinds",
-      "-language:implicitConversions",
-      "-Ypartial-unification",
-      "-target:jvm-1.8",
-      "-Ydelambdafy:method"
+      "-language:implicitConversions"
     )
+
+    if (ScalaArtifacts.isScala3(scalaVersion.value)) {
+      commonOptions
+    } else {
+      commonOptions :+ "-Xlog-reflective-calls"
+    }
+  }
   )
 }
