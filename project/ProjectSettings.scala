@@ -42,11 +42,11 @@ object ProjectSettings extends AutoPlugin {
   )
 
   lazy val testSettings = Seq(
-    fork in Test := true,
-    logBuffered in Test := false,
-    parallelExecution in Test := false,
+    Test / fork := true,
+    Test / logBuffered := false,
+    Test / parallelExecution := false,
     // show full stack traces and test case durations
-    testOptions in Test += Tests.Argument("-oDF"),
+    Test / testOptions += Tests.Argument("-oDF"),
   )
 
   lazy val scalariFormSettings = Seq(
@@ -60,7 +60,7 @@ object ProjectSettings extends AutoPlugin {
   )
 
   lazy val resolverSettings = Seq(
-    resolvers += Resolver.sonatypeRepo("public"),
+    resolvers ++= Resolver.sonatypeOssRepos("public"),
     resolvers += Resolver.typesafeRepo("releases"),
     resolvers += Resolver.jcenterRepo,
   )
