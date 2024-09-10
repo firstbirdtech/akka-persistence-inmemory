@@ -20,9 +20,10 @@ import akka.actor.ExtendedActorSystem
 import akka.persistence.inmemory.extension.StorageExtensionProvider
 import akka.persistence.query.ReadJournalProvider
 import com.typesafe.config.Config
+import akka.persistence.query.{ scaladsl => akkaScalaDsl, javadsl => akkaJavaDsl }
 
 class InMemoryReadJournalProvider(system: ExtendedActorSystem, config: Config) extends ReadJournalProvider {
-  override val scaladslReadJournal: scaladsl.InMemoryReadJournal = new scaladsl.InMemoryReadJournal(config, StorageExtensionProvider(system).journalStorage(config))(system)
+  override def scaladslReadJournal(): akkaScalaDsl.ReadJournal = new scaladsl.InMemoryReadJournal(config, StorageExtensionProvider(system).journalStorage(config))(system)
 
-  override val javadslReadJournal: javadsl.InMemoryReadJournal = new javadsl.InMemoryReadJournal(scaladslReadJournal)
+  override def javadslReadJournal(): akkaJavaDsl.ReadJournal = new javadsl.InMemoryReadJournal(scaladslReadJournal().asInstanceOf[scaladsl.InMemoryReadJournal])
 }

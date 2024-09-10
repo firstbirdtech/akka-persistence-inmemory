@@ -8,7 +8,7 @@ import scala.compat.Platform
 import scala.util.Random
 
 object UUIDs {
-  implicit val TimeBasedUUIDOrdering = new Ordering[TimeBasedUUID] {
+  implicit val TimeBasedUUIDOrdering: Ordering[TimeBasedUUID] = new Ordering[TimeBasedUUID] {
     override def compare(x: TimeBasedUUID, y: TimeBasedUUID): Int = {
       val xuuid: UUID = x.value
       val yuuid: UUID = y.value
@@ -34,7 +34,7 @@ object UUIDs {
   }
 
   final val ClockSeqAndNode: Long = {
-    val clock: Long = new Random(Platform.currentTime).nextLong()
+    val clock: Long = new Random(System.currentTimeMillis()).nextLong()
     0L |
       (clock & 0x0000000000003FFFL) << 48 |
       0x8000000000000000L |

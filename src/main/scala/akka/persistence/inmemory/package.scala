@@ -27,7 +27,6 @@ import scala.compat.Platform
 package object inmemory {
   type Seq[A] = scala.collection.immutable.Seq[A]
 
-  def now: Long = Platform.currentTime
   def nowUuid: UUID = UUIDs.timeBased()
   def getTimeBasedUUID: TimeBasedUUID = TimeBasedUUID(nowUuid)
 
@@ -36,5 +35,5 @@ package object inmemory {
 
   implicit def seqToVector[A](xs: Seq[A]): Vector[A] = xs.toVector
   implicit def setToVector[A](xs: Set[A]): Vector[A] = xs.toVector
-  implicit def mapSeqToVector[K, V](map: Map[K, Seq[V]]): Map[K, Vector[V]] = map.mapValues(_.toVector)
+  implicit def mapSeqToVector[K, V](map: Map[K, Seq[V]]): Map[K, Vector[V]] = map.map(e => (e._1, e._2.toVector))
 }

@@ -39,7 +39,6 @@ import scalaz.std.AllInstances._
 class InMemorySnapshotStore(config: Config) extends SnapshotStore {
   implicit val system: ActorSystem = context.system
   implicit val ec: ExecutionContext = context.dispatcher
-  implicit val mat: Materializer = ActorMaterializer()
   implicit val timeout: Timeout = Timeout(config.getDuration("ask-timeout", TimeUnit.SECONDS) -> SECONDS)
   val serialization = SerializationExtension(system)
 
@@ -58,7 +57,6 @@ class InMemorySnapshotStore(config: Config) extends SnapshotStore {
         (snapshots ? SnapshotForMaxSequenceNr(persistenceId, maxSequenceNr)).mapTo[Option[SnapshotEntry]]
       case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, _, _) =>
         (snapshots ? SnapshotForMaxSequenceNrAndMaxTimestamp(persistenceId, maxSequenceNr, maxTimestamp)).mapTo[Option[SnapshotEntry]]
-      case _ => Future.successful(None)
     }
 
     val result = for {
@@ -86,6 +84,5 @@ class InMemorySnapshotStore(config: Config) extends SnapshotStore {
       (snapshots ? DeleteUpToMaxSequenceNr(persistenceId, maxSequenceNr)).map(_ => ())
     case SnapshotSelectionCriteria(maxSequenceNr, maxTimestamp, _, _) =>
       (snapshots ? DeleteUpToMaxSequenceNrAndMaxTimestamp(persistenceId, maxSequenceNr, maxTimestamp)).map(_ => ())
-    case _ => Future.successful(())
   }
 }

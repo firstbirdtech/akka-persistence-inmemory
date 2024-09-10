@@ -20,7 +20,7 @@ import akka.actor._
 import akka.serialization.SerializationExtension
 import com.typesafe.config.Config
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 private object StorageExtensionByProperty {
   final val PropertyKeysKey = "inmemory-storage.property-keys"
