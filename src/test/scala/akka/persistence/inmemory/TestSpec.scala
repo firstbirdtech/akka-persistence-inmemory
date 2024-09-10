@@ -33,14 +33,17 @@ import akka.testkit.TestProbe
 import akka.util.Timeout
 import com.typesafe.config.{ Config, ConfigFactory }
 import org.scalatest.concurrent.{ Eventually, ScalaFutures }
-import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach, FlatSpec, Matchers }
+import org.scalatest.{ BeforeAndAfterAll, BeforeAndAfterEach }
 
 import scala.compat.Platform
 import scala.concurrent.duration._
 import scala.concurrent.{ ExecutionContextExecutor, Future }
 import scala.util.Try
+import org.scalatest.flatspec.AnyFlatSpec
+import org.scalatest.matchers.should.Matchers
+import akka.event.LogSource
 
-abstract class TestSpec(config: Config) extends FlatSpec
+abstract class TestSpec(config: Config) extends AnyFlatSpec
   with Matchers
   with ScalaFutures
   with Eventually
@@ -51,14 +54,12 @@ abstract class TestSpec(config: Config) extends FlatSpec
   def this(config: String = "application.conf") = this(ConfigFactory.load(config))
 
   implicit val system: ActorSystem = ActorSystem("test", config)
-  implicit val mat: Materializer = ActorMaterializer()
   implicit val ec: ExecutionContextExecutor = system.dispatcher
-  val log: LoggingAdapter = Logging(system, this.getClass)
+  val log: LoggingAdapter = Logging(system, this.getClass)(LogSource.fromClass)
   implicit val pc: PatienceConfig = PatienceConfig(timeout = 60.minutes, interval = 300.millis)
-  implicit val timeout = Timeout(60.minutes)
+  implicit val timeout: Timeout = Timeout(60.minutes)
   val serialization = SerializationExtension(system)
 
-  def now: Long = Platform.currentTime
   def getNowUUID: TimeBasedUUID = TimeBasedUUID(UUIDs.timeBased())
   def getTimeBasedUUIDFromTimestamp(timestamp: Long): TimeBasedUUID =
     TimeBasedUUID(UUIDs.startOf(timestamp))

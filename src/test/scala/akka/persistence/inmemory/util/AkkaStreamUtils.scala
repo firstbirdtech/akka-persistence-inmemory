@@ -22,10 +22,12 @@ import akka.stream.Materializer
 import akka.stream.scaladsl.Source
 import akka.stream.testkit.TestSubscriber
 import akka.stream.testkit.scaladsl.TestSink
-import org.scalatest.{ FlatSpecLike, Matchers, Suite }
+import org.scalatest.{ Suite }
 import scala.collection.immutable._
+import org.scalatest.matchers.should.Matchers
+import org.scalatest.flatspec.AnyFlatSpec
 
-trait AkkaStreamUtils extends FlatSpecLike with Matchers { _: Suite =>
+trait AkkaStreamUtils extends AnyFlatSpec with Matchers { _s: Suite =>
   implicit def mat: Materializer
   implicit def system: ActorSystem
 

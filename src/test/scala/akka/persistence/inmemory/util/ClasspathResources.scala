@@ -26,7 +26,10 @@ import akka.util.ByteString
 import scala.concurrent.Future
 import scala.io.{ Source => ScalaIOSource }
 import scala.util.Try
-import scala.xml.pull.{ XMLEvent, XMLEventReader }
+import javax.xml.stream.XMLEventReader
+import javax.xml.stream.events.XMLEvent
+import javax.xml.stream.XMLInputFactory
+import scala.jdk.CollectionConverters._
 
 object ClasspathResources extends ClasspathResources
 
@@ -38,12 +41,15 @@ trait ClasspathResources {
 
   def withXMLEventReader[T](fileName: String)(f: XMLEventReader => T): T =
     withInputStream(fileName) { is =>
-      f(new XMLEventReader(ScalaIOSource.fromInputStream(is)))
+      f(XMLInputFactory.newInstance().createXMLEventReader(is))
     }
 
   def withXMLEventSource[T](fileName: String)(f: Source[XMLEvent, NotUsed] => T): T =
     withXMLEventReader(fileName) { reader =>
-      f(Source.fromIterator(() => reader))
+      f(Source.fromIterator(() => new Iterator[XMLEvent] {
+        override def hasNext: Boolean = reader.hasNext
+        override def next(): XMLEvent = reader.nextEvent()
+      }))
     }
 
   def withByteStringSource[T](fileName: String)(f: Source[ByteString, Future[IOResult]] => T): T =
