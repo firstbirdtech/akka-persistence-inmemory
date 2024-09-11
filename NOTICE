@@ -1,0 +1,7 @@
+akka-persistence-inmemory
+Copyright 2016 Dennis Vriend
+
+akka-persistence-inmemory was forked from https://github.com/dnvriend/akka-persistence-inmemory
+and the bulk of the work was done by Dennis Vriend.
+
+Most files saw small changes by Benjamin Maurer in 2024.

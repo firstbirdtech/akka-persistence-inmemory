@@ -1,15 +1,63 @@
-/*
- * Copyright 2016 Dennis Vriend
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
+addCommandAlias("codeFmt", ";scalafmtAll;scalafmtSbt;scalafixAll")
+addCommandAlias("codeVerify", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
+
+lazy val akkaPersistenceInmemory = project
+  .in(file("."))
+  .settings(
+    name                := "akka-persistence-inmemory",
+    organization        := "com.firstbird",
+    organizationName    := "Firstbird GmbH",
+    sonatypeProfileName := "com.firstbird",
+    description         := "A plugin for storing events in an event journal akka-persistence-inmemory",
+    homepage            := Some(url("https://github.com/firstbirdtech/akka-persistence-inmemory")),
+    licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
+    headerLicense := Some(HeaderLicense.ALv2("2024", "akka-persistence-inmemory contributors")),
+    startYear     := Some(2014),
+    scmInfo := Some(
+      ScmInfo(homepage.value.get, "scm:git:https://github.com/firstbirdtech/akka-persistence-inmemory.git")
+    ),
+    developers += Developer(
+      "contributors",
+      "Contributors",
+      "hello@firstbird.com",
+      url("https://github.com/firstbirdtech/akka-persistence-inmemory/graphs/contributors")
+    ),
+
+    // Compiler Settings
+    scalaVersion       := "2.13.14",
+    crossScalaVersions := Seq("2.13.14", "3.3.3"),
+    semanticdbEnabled  := true,
+    semanticdbVersion  := scalafixSemanticdb.revision,
+    scalacOptions ++= {
+      val commonOptions = Seq(
+        "-encoding",
+        "UTF-8",
+        "-deprecation",
+        "-feature",
+        "-unchecked",
+        "-language:higherKinds",
+        "-language:implicitConversions"
+      )
+
+      if (ScalaArtifacts.isScala3(scalaVersion.value)) {
+        commonOptions :+ "-Wunused:all"
+      } else {
+        commonOptions ++ Seq(
+          "-Wunused",
+          "-Xlog-reflective-calls",
+          "-Xsource:3",
+          "-Wdead-code"
+        )
+      }
+    },
+
+    // Test Options
+    Test / fork              := true,
+    Test / logBuffered       := false,
+    Test / parallelExecution := false,
+    // show full stack traces and test case durations
+    Test / testOptions += Tests.Argument("-oDF"),
+
+    // Dependencies
+    libraryDependencies ++= Dependencies.root
+  )

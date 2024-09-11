@@ -14,16 +14,13 @@
  * limitations under the License.
  */
 
-// to deploy to bintray
-addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.1")
-
 // to format scala source code
 addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.2")
 addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.12.1")
 
 // enable updating file headers eg. for copyright
-addSbtPlugin("de.heikoseeberger" % "sbt-header" % "4.0.0")
+addSbtPlugin("de.heikoseeberger" % "sbt-header" % "5.6.0")
 
-addSbtPlugin("com.eed3si9n" % "sbt-buildinfo" % "0.7.0")
+addSbtPlugin("com.github.sbt" % "sbt-ci-release" % "1.6.1")
 
-addSbtPlugin("com.github.gseitz" % "sbt-release" % "1.0.6")
+addSbtPlugin("org.scoverage" % "sbt-scoverage" % "2.2.0")

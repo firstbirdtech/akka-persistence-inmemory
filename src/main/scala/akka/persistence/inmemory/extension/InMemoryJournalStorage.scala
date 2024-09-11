@@ -27,7 +27,6 @@ import scalaz.std.AllInstances._
 import scalaz.syntax.semigroup._
 
 import scala.collection.immutable._
-import scala.annotation.nowarn
 
 object InMemoryJournalStorage {
   sealed trait JournalCommand                                                     extends NoSerializationVerificationNeeded
@@ -76,7 +75,7 @@ class InMemoryJournalStorage(serialization: Serialization) extends Actor with Ac
   def allPersistenceIds(ref: ActorRef): Unit =
     ref ! akka.actor.Status.Success(journal.keySet)
 
-  def highestSequenceNr(ref: ActorRef, persistenceId: String, @nowarn fromSequenceNr: Long): Unit = {
+  def highestSequenceNr(ref: ActorRef, persistenceId: String): Unit = {
     val highestSequenceNrJournal = getEventsByPid(persistenceId, journal).map(getMaxSequenceNr).getOrElse(0L)
     ref ! akka.actor.Status.Success(highestSequenceNrJournal)
   }
@@ -164,11 +163,11 @@ class InMemoryJournalStorage(serialization: Serialization) extends Actor with Ac
   }
 
   override def receive: Receive = LoggingReceive {
-    case AllPersistenceIds                                => allPersistenceIds(sender())
-    case HighestSequenceNr(persistenceId, fromSequenceNr) => highestSequenceNr(sender(), persistenceId, fromSequenceNr)
-    case EventsByTag(tag, offset)                         => eventsByTag(sender(), tag, offset)
-    case WriteList(xs)                                    => writelist(sender(), xs)
-    case Delete(persistenceId, toSequenceNr)              => delete(sender(), persistenceId, toSequenceNr)
+    case AllPersistenceIds                                    => allPersistenceIds(sender())
+    case HighestSequenceNr(persistenceId, fromSequenceNr @ _) => highestSequenceNr(sender(), persistenceId)
+    case EventsByTag(tag, offset)                             => eventsByTag(sender(), tag, offset)
+    case WriteList(xs)                                        => writelist(sender(), xs)
+    case Delete(persistenceId, toSequenceNr)                  => delete(sender(), persistenceId, toSequenceNr)
     case GetJournalEntriesExceptDeleted(persistenceId, fromSequenceNr, toSequenceNr, max) =>
       messages(sender(), persistenceId, fromSequenceNr, toSequenceNr, max, all = false)
     case GetAllJournalEntries(persistenceId, fromSequenceNr, toSequenceNr, max) =>
