@@ -17,39 +17,38 @@
 package akka.persistence.inmemory
 package journal
 
-import java.util.concurrent.TimeUnit
-
-import akka.actor.{ ActorRef, ActorSystem }
-import akka.event.{ Logging, LoggingAdapter }
+import akka.actor.{ActorRef, ActorSystem}
+import akka.event.{LogSource, Logging, LoggingAdapter}
 import akka.pattern.ask
-import akka.persistence.inmemory.extension.{ InMemoryJournalStorage, StorageExtensionProvider }
-import akka.persistence.journal.{ AsyncWriteJournal, Tagged }
-import akka.persistence.{ AtomicWrite, PersistentRepr }
+import akka.persistence.inmemory.extension.{InMemoryJournalStorage, StorageExtensionProvider}
+import akka.persistence.journal.{AsyncWriteJournal, Tagged}
+import akka.persistence.{AtomicWrite, PersistentRepr}
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{ Flow, Sink, Source }
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.Timeout
 import com.typesafe.config.Config
 
+import java.util.concurrent.TimeUnit
+
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
-import scala.util.{ Failure, Success, Try }
+import scala.concurrent.{ExecutionContext, Future}
+import scala.util.{Failure, Success, Try}
 
 class InMemoryAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
-  implicit val system: ActorSystem = context.system
+  implicit val system: ActorSystem  = context.system
   implicit val ec: ExecutionContext = context.dispatcher
-  implicit val mat: Materializer = ActorMaterializer()
-  val log: LoggingAdapter = Logging(system, this.getClass)
-  implicit val timeout: Timeout = Timeout(config.getDuration("ask-timeout", TimeUnit.SECONDS) -> SECONDS)
-  val serialization = SerializationExtension(system)
+  val log: LoggingAdapter           = Logging(system, this.getClass)(LogSource.fromClass)
+  implicit val timeout: Timeout     = Timeout(config.getDuration("ask-timeout", TimeUnit.SECONDS) -> SECONDS)
+  val serialization                 = SerializationExtension(system)
 
   val journal: ActorRef = StorageExtensionProvider(system).journalStorage(config)
 
-  private def serialize(persistentRepr: PersistentRepr): Try[(Array[Byte], Set[String])] = persistentRepr.payload match {
-    case Tagged(payload, tags) =>
-      serialization.serialize(persistentRepr.withPayload(payload)).map((_, tags))
-    case _ => serialization.serialize(persistentRepr).map((_, Set.empty[String]))
-  }
+  private def serialize(persistentRepr: PersistentRepr): Try[(Array[Byte], Set[String])] =
+    persistentRepr.payload match {
+      case Tagged(payload, tags) =>
+        serialization.serialize(persistentRepr.withPayload(payload)).map((_, tags))
+      case _ => serialization.serialize(persistentRepr).map((_, Set.empty[String]))
+    }
 
   private def payload(persistentRepr: PersistentRepr): PersistentRepr = persistentRepr.payload match {
     case Tagged(payload, _) => persistentRepr.withPayload(payload)
@@ -61,22 +60,29 @@ class InMemoryAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
   }
 
   val serializer = Flow[AtomicWrite].flatMapConcat { write =>
-    Source(write.payload).flatMapConcat { repr =>
-      Source.fromFuture(Future.fromTry(serialize(repr)))
-        .map(toJournalEntry(_, payload(repr)))
-    }.fold(Try(List.empty[JournalEntry])) {
-      case (Success(xs), e) => Success(xs :+ e)
-      case (c, _)           => c
-    }.recover {
-      case cause => Failure(cause)
-    }
+    Source(write.payload)
+      .flatMapConcat { repr =>
+        Source
+          .future(Future.fromTry(serialize(repr)))
+          .map(toJournalEntry(_, payload(repr)))
+      }
+      .fold(Try(List.empty[JournalEntry])) {
+        case (Success(xs), e) => Success(xs :+ e)
+        case (c, _)           => c
+      }
+      .recover { case cause =>
+        Failure(cause)
+      }
   }
 
   override def asyncWriteMessages(messages: Seq[AtomicWrite]): Future[Seq[Try[Unit]]] =
-    Source(messages).via(serializer).mapAsync(1) {
-      case Success(xs)    => (journal ? InMemoryJournalStorage.WriteList(xs)).map(_ => Success(()))
-      case Failure(cause) => Future.successful(Failure(cause))
-    }.runWith(Sink.seq)
+    Source(messages)
+      .via(serializer)
+      .mapAsync(1) {
+        case Success(xs)    => (journal ? InMemoryJournalStorage.WriteList(xs)).map(_ => Success(()))
+        case Failure(cause) => Future.successful(Failure(cause))
+      }
+      .runWith(Sink.seq)
 
   override def asyncDeleteMessagesTo(persistenceId: String, toSequenceNr: Long): Future[Unit] =
     (journal ? InMemoryJournalStorage.Delete(persistenceId, toSequenceNr)).map(_ => ())
@@ -84,15 +90,19 @@ class InMemoryAsyncWriteJournal(config: Config) extends AsyncWriteJournal {
   override def asyncReadHighestSequenceNr(persistenceId: String, fromSequenceNr: Long): Future[Long] =
     (journal ? InMemoryJournalStorage.HighestSequenceNr(persistenceId, fromSequenceNr)).mapTo[Long]
 
-  override def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(recoveryCallback: (PersistentRepr) => Unit): Future[Unit] =
-    Source.fromFuture((journal ? InMemoryJournalStorage.GetJournalEntriesExceptDeleted(persistenceId, fromSequenceNr, toSequenceNr, max)).mapTo[List[JournalEntry]])
+  override def asyncReplayMessages(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long, max: Long)(
+      recoveryCallback: (PersistentRepr) => Unit): Future[Unit] =
+    Source
+      .future((journal ? InMemoryJournalStorage
+        .GetJournalEntriesExceptDeleted(persistenceId, fromSequenceNr, toSequenceNr, max)).mapTo[List[JournalEntry]])
       .mapConcat(identity)
       .via(deserialization)
       .runForeach(recoveryCallback)
       .map(_ => ())
 
   private val deserialization = Flow[JournalEntry].flatMapConcat { entry =>
-    Source.fromFuture(Future.fromTry(serialization.deserialize(entry.serialized, classOf[PersistentRepr])))
+    Source
+      .future(Future.fromTry(serialization.deserialize(entry.serialized, classOf[PersistentRepr])))
       .map(_.update(deleted = entry.deleted))
   }
 }

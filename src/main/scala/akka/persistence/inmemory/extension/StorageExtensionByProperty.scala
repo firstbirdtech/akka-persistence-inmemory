@@ -20,20 +20,29 @@ import akka.actor._
 import akka.serialization.SerializationExtension
 import com.typesafe.config.Config
 
-import scala.collection.JavaConverters._
+import scala.jdk.CollectionConverters._
 
 private object StorageExtensionByProperty {
   final val PropertyKeysKey = "inmemory-storage.property-keys"
 }
 
-class StorageExtensionByProperty()(implicit val system: ExtendedActorSystem) extends StorageExtension with ActorSingletonSupport {
+class StorageExtensionByProperty()(implicit val system: ExtendedActorSystem)
+    extends StorageExtension
+    with ActorSingletonSupport {
   import StorageExtensionByProperty._
   private val serialization = SerializationExtension(system)
-  private val propertyKeys = if (system.settings.config.hasPath(PropertyKeysKey)) system.settings.config.getStringList(PropertyKeysKey).asScala else Nil
+  private val propertyKeys =
+    if (system.settings.config.hasPath(PropertyKeysKey)) system.settings.config.getStringList(PropertyKeysKey).asScala
+    else Nil
 
-  override def journalStorage(config: Config): ActorRef = localNonClusteredActorSingleton(system, Props(new InMemoryJournalStorage(serialization)), s"JournalStorage${keyspace(config)}")
+  override def journalStorage(config: Config): ActorRef = localNonClusteredActorSingleton(
+    system,
+    Props(new InMemoryJournalStorage(serialization)),
+    s"JournalStorage${keyspace(config)}")
 
-  override def snapshotStorage(config: Config): ActorRef = localNonClusteredActorSingleton(system, Props(new InMemorySnapshotStorage), s"SnapshotStorage${keyspace(config)}")
+  override def snapshotStorage(config: Config): ActorRef =
+    localNonClusteredActorSingleton(system, Props(new InMemorySnapshotStorage), s"SnapshotStorage${keyspace(config)}")
 
-  private def keyspace(config: Config): String = propertyKeys.flatMap(key => if (config.hasPath(key)) Some(config.getString(key)) else None).mkString("@", "@", "")
+  private def keyspace(config: Config): String =
+    propertyKeys.flatMap(key => if (config.hasPath(key)) Some(config.getString(key)) else None).mkString("@", "@", "")
 }

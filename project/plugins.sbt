@@ -18,7 +18,8 @@
 addSbtPlugin("org.foundweekends" % "sbt-bintray" % "0.5.1")
 
 // to format scala source code
-addSbtPlugin("org.scalariform" % "sbt-scalariform" % "1.8.2")
+addSbtPlugin("org.scalameta" % "sbt-scalafmt" % "2.5.2")
+addSbtPlugin("ch.epfl.scala" % "sbt-scalafix" % "0.12.1")
 
 // enable updating file headers eg. for copyright
 addSbtPlugin("de.heikoseeberger" % "sbt-header" % "4.0.0")

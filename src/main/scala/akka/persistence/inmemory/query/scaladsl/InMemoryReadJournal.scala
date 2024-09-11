@@ -18,50 +18,49 @@ package akka.persistence.inmemory
 package query
 package scaladsl
 
-import java.util.concurrent.TimeUnit
-
 import akka.NotUsed
-import akka.actor.{ ActorRef, ExtendedActorSystem }
-import akka.event.{ Logging, LoggingAdapter }
+import akka.actor.{ActorRef, ExtendedActorSystem}
+import akka.event.{LogSource, Logging, LoggingAdapter}
 import akka.pattern.ask
-import akka.persistence.{ Persistence, PersistentRepr }
-import akka.persistence.inmemory.extension.{ InMemoryJournalStorage, StorageExtension }
+import akka.persistence.inmemory.extension.InMemoryJournalStorage
 import akka.persistence.inmemory.util.UUIDs
 import akka.persistence.query._
 import akka.persistence.query.scaladsl._
+import akka.persistence.{Persistence, PersistentRepr}
 import akka.serialization.SerializationExtension
-import akka.stream.scaladsl.{ Flow, Sink, Source }
-import akka.stream.{ ActorMaterializer, Materializer }
+import akka.stream.scaladsl.{Flow, Sink, Source}
 import akka.util.Timeout
 import com.typesafe.config.Config
 
-import scala.collection.immutable.{ Iterable, Seq }
+import java.util.concurrent.TimeUnit
+
+import scala.collection.immutable.{Iterable, Seq}
 import scala.concurrent.duration._
-import scala.concurrent.{ ExecutionContext, Future }
+import scala.concurrent.{ExecutionContext, Future}
 import scala.util.Try
 
 object InMemoryReadJournal {
   final val Identifier = "inmemory-read-journal"
 }
 
-class InMemoryReadJournal(config: Config, journal: ActorRef)(implicit val system: ExtendedActorSystem) extends ReadJournal
-  with CurrentPersistenceIdsQuery
-  with AllPersistenceIdsQuery
-  with CurrentEventsByPersistenceIdQuery
-  with EventsByPersistenceIdQuery
-  with CurrentEventsByTagQuery
-  with CurrentEventsByTagQuery2
-  with EventsByTagQuery
-  with EventsByTagQuery2 {
+class InMemoryReadJournal(config: Config, journal: ActorRef)(implicit val system: ExtendedActorSystem)
+    extends ReadJournal
+    with CurrentPersistenceIdsQuery
+    with CurrentEventsByPersistenceIdQuery
+    with EventsByPersistenceIdQuery
+    with CurrentEventsByTagQuery
+    with EventsByTagQuery {
 
   private implicit val ec: ExecutionContext = system.dispatcher
-  private implicit val mat: Materializer = ActorMaterializer()
-  private implicit val log: LoggingAdapter = Logging(system, this.getClass)
-  private val serialization = SerializationExtension(system)
-  private val offsetMode: String = config.getString("offset-mode").toLowerCase()
-  private implicit val timeout: Timeout = Timeout(config.getDuration("ask-timeout", TimeUnit.MILLISECONDS) -> MILLISECONDS)
-  private val refreshInterval: FiniteDuration = config.getDuration("refresh-interval", TimeUnit.MILLISECONDS) -> MILLISECONDS
-  private val maxBufferSize: Int = Try(config.getString("max-buffer-size").toInt).getOrElse(config.getInt("max-buffer-size"))
+  private implicit val log: LoggingAdapter  = Logging(system, this.getClass)(LogSource.fromClass)
+  private val serialization                 = SerializationExtension(system)
+  private val offsetMode: String            = config.getString("offset-mode").toLowerCase()
+  private implicit val timeout: Timeout = Timeout(
+    config.getDuration("ask-timeout", TimeUnit.MILLISECONDS) -> MILLISECONDS)
+  private val refreshInterval: FiniteDuration =
+    config.getDuration("refresh-interval", TimeUnit.MILLISECONDS) -> MILLISECONDS
+  private val maxBufferSize: Int =
+    Try(config.getString("max-buffer-size").toInt).getOrElse(config.getInt("max-buffer-size"))
 
   // As event adapters are *no* first class citizins in akka-persistence-query
   // this workaround has to be implemented.
@@ -79,15 +78,22 @@ class InMemoryReadJournal(config: Config, journal: ActorRef)(implicit val system
       |ask-timeout: {}
       |refresh-interval: {}
       |max-buffer-size: {}
-    """.stripMargin, timeout, refreshInterval, maxBufferSize
+    """.stripMargin,
+    timeout,
+    refreshInterval,
+    maxBufferSize
   )
 
   override def currentPersistenceIds(): Source[String, NotUsed] =
-    Source.fromFuture((journal ? InMemoryJournalStorage.AllPersistenceIds).mapTo[Set[String]])
+    Source
+      .future((journal ? InMemoryJournalStorage.AllPersistenceIds).mapTo[Set[String]])
       .mapConcat(identity)
 
-  override def allPersistenceIds(): Source[String, NotUsed] =
-    Source.repeat(0).flatMapConcat(_ => Source.tick(refreshInterval, 0.seconds, 0).take(1).flatMapConcat(_ => currentPersistenceIds()))
+  def allPersistenceIds(): Source[String, NotUsed] =
+    Source
+      .repeat(0)
+      .flatMapConcat(_ =>
+        Source.tick(refreshInterval, 0.seconds, 0).take(1).flatMapConcat(_ => currentPersistenceIds()))
       .statefulMapConcat[String] { () =>
         var knownIds = Set.empty[String]
         def next(id: String): Iterable[String] = {
@@ -98,60 +104,82 @@ class InMemoryReadJournal(config: Config, journal: ActorRef)(implicit val system
         (id) => next(id)
       }
 
-  override def currentEventsByPersistenceId(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long): Source[EventEnvelope, NotUsed] =
-    Source.fromFuture((journal ? InMemoryJournalStorage.GetJournalEntriesExceptDeleted(persistenceId, fromSequenceNr, toSequenceNr, Long.MaxValue))
-      .mapTo[List[JournalEntry]])
+  override def currentEventsByPersistenceId(persistenceId: String,
+                                            fromSequenceNr: Long,
+                                            toSequenceNr: Long): Source[EventEnvelope, NotUsed] =
+    Source
+      .future(
+        (journal ? InMemoryJournalStorage
+          .GetJournalEntriesExceptDeleted(persistenceId, fromSequenceNr, toSequenceNr, Long.MaxValue))
+          .mapTo[List[JournalEntry]])
       .mapConcat(identity)
       .via(deserialization)
-      .map(repr => EventEnvelope(repr.sequenceNr, repr.persistenceId, repr.sequenceNr, repr.payload))
+      .map(repr =>
+        EventEnvelope(Offset.sequence(repr.sequenceNr),
+                      repr.persistenceId,
+                      repr.sequenceNr,
+                      repr.payload,
+                      repr.timestamp))
 
-  override def eventsByPersistenceId(persistenceId: String, fromSequenceNr: Long, toSequenceNr: Long): Source[EventEnvelope, NotUsed] =
-    Source.unfoldAsync[Long, Seq[EventEnvelope]](Math.max(1, fromSequenceNr)) { (from: Long) =>
-      def nextFromSeqNr(xs: Seq[EventEnvelope]): Long = {
-        if (xs.isEmpty) from else xs.map(_.sequenceNr).max + 1
-      }
+  override def eventsByPersistenceId(persistenceId: String,
+                                     fromSequenceNr: Long,
+                                     toSequenceNr: Long): Source[EventEnvelope, NotUsed] =
+    Source
+      .unfoldAsync[Long, Seq[EventEnvelope]](Math.max(1, fromSequenceNr)) { (from: Long) =>
+        def nextFromSeqNr(xs: Seq[EventEnvelope]): Long = {
+          if (xs.isEmpty) from else xs.map(_.sequenceNr).max + 1
+        }
 
-      from match {
-        case x if x > toSequenceNr => Future.successful(None)
-        case _ =>
-          Source.tick(refreshInterval, 0.seconds, 0).take(1).flatMapConcat(_ =>
-            currentEventsByPersistenceId(persistenceId, from, toSequenceNr)
-              .take(maxBufferSize)).runWith(Sink.seq).map { xs =>
-            val newFromSeqNr = nextFromSeqNr(xs)
-            Some((newFromSeqNr, xs))
-          }
-      }
-    }.mapConcat(identity)
-
-  override def currentEventsByTag(tag: String, offset: Long): Source[EventEnvelope, NotUsed] =
-    currentEventsByTag(tag, Sequence(offset))
-
-  override def currentEventsByTag(tag: String, offset: Offset): Source[EventEnvelope2, NotUsed] =
-    Source.fromFuture((journal ? InMemoryJournalStorage.EventsByTag(tag, offset))
-      .mapTo[List[JournalEntry]])
-      .mapConcat(identity)
-      .via(deserializationWithOffset(offset))
-      .map {
-        case (offset, repr) => EventEnvelope2(offset, repr.persistenceId, repr.sequenceNr, repr.payload)
-      }
-
-  override def eventsByTag(tag: String, offset: Long): Source[EventEnvelope, NotUsed] =
-    eventsByTag(tag, Sequence(offset))
-
-  override def eventsByTag(tag: String, offset: Offset): Source[EventEnvelope2, NotUsed] =
-    Source.unfoldAsync[Offset, Seq[EventEnvelope2]](offset) { (from: Offset) =>
-      def nextFromOffset(xs: Seq[EventEnvelope2]): Offset = {
-        if (xs.isEmpty) from else xs.last.offset match {
-          case Sequence(n)         => Sequence(n)
-          case TimeBasedUUID(time) => TimeBasedUUID(UUIDs.startOf(UUIDs.unixTimestamp(time) + 1))
+        from match {
+          case x if x > toSequenceNr => Future.successful(None)
+          case _ =>
+            Source
+              .tick(refreshInterval, 0.seconds, 0)
+              .take(1)
+              .flatMapConcat(_ =>
+                currentEventsByPersistenceId(persistenceId, from, toSequenceNr)
+                  .take(maxBufferSize))
+              .runWith(Sink.seq)
+              .map { xs =>
+                val newFromSeqNr = nextFromSeqNr(xs)
+                Some((newFromSeqNr, xs))
+              }
         }
       }
-      ticker.flatMapConcat(_ => currentEventsByTag(tag, from)
-        .take(maxBufferSize)).runWith(Sink.seq).map { xs =>
-        val next = nextFromOffset(xs)
-        Some((next, xs))
+      .mapConcat(identity)
+
+  override def currentEventsByTag(tag: String, offset: Offset): Source[EventEnvelope, NotUsed] =
+    Source
+      .future((journal ? InMemoryJournalStorage.EventsByTag(tag, offset))
+        .mapTo[List[JournalEntry]])
+      .mapConcat(identity)
+      .via(deserializationWithOffset(offset))
+      .map { case (offset, repr) =>
+        EventEnvelope(offset, repr.persistenceId, repr.sequenceNr, repr.payload, repr.timestamp)
       }
-    }.mapConcat(identity)
+
+  override def eventsByTag(tag: String, offset: Offset): Source[EventEnvelope, NotUsed] =
+    Source
+      .unfoldAsync[Offset, Seq[EventEnvelope]](offset) { (from: Offset) =>
+        def nextFromOffset(xs: Seq[EventEnvelope]): Offset = {
+          if (xs.isEmpty) from
+          else
+            xs.last.offset match {
+              case Sequence(n)         => Sequence(n)
+              case TimeBasedUUID(time) => TimeBasedUUID(UUIDs.startOf(UUIDs.unixTimestamp(time) + 1))
+            }
+        }
+        ticker
+          .flatMapConcat(_ =>
+            currentEventsByTag(tag, from)
+              .take(maxBufferSize))
+          .runWith(Sink.seq)
+          .map { xs =>
+            val next = nextFromOffset(xs)
+            Some((next, xs))
+          }
+      }
+      .mapConcat(identity)
 
   // ticker
   val ticker = Source.tick(refreshInterval, 0.seconds, 0).take(1)
@@ -160,7 +188,7 @@ class InMemoryReadJournal(config: Config, journal: ActorRef)(implicit val system
   // deserialization
   //
   private def deserialize(serialized: Array[Byte]) =
-    Source.fromFuture(Future.fromTry(serialization.deserialize(serialized, classOf[PersistentRepr])))
+    Source.future(Future.fromTry(serialization.deserialize(serialized, classOf[PersistentRepr])))
 
   private val deserialization = Flow[JournalEntry]
     .flatMapConcat(deserializeJournalEntry)
@@ -185,8 +213,9 @@ class InMemoryReadJournal(config: Config, journal: ActorRef)(implicit val system
     }
   }
 
-  private def deserializationWithOffset(offset: Offset): Flow[JournalEntry, (Offset, PersistentRepr), NotUsed] = Flow[JournalEntry]
-    .flatMapConcat(entry =>
-      deserializeJournalEntry(entry)
-        .map(repr => (determineOffset(offset, entry), repr)))
+  private def deserializationWithOffset(offset: Offset): Flow[JournalEntry, (Offset, PersistentRepr), NotUsed] =
+    Flow[JournalEntry]
+      .flatMapConcat(entry =>
+        deserializeJournalEntry(entry)
+          .map(repr => (determineOffset(offset, entry), repr)))
 }

@@ -20,6 +20,8 @@ import akka.persistence.query.EventEnvelope
 
 class CurrentEventsByPersistenceIdTest extends QueryTestSpec {
 
+  val nowTs = System.currentTimeMillis()
+
   it should "not find any events for unknown pid" in
     withCurrentEventsByPersistenceId()("unkown-pid", 0L, Long.MaxValue) { tp =>
       tp.request(Int.MaxValue)
@@ -31,55 +33,55 @@ class CurrentEventsByPersistenceIdTest extends QueryTestSpec {
 
     withCurrentEventsByPersistenceId()("my-1", 0, 1) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1"))
-      tp.expectComplete()
+        .expectNext(EventEnvelope(1, "my-1", 1, "a-1", nowTs))
+        .expectComplete()
     }
 
     withCurrentEventsByPersistenceId()("my-1", 1, 1) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1"))
+      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1", nowTs))
       tp.expectComplete()
     }
 
     withCurrentEventsByPersistenceId()("my-1", 1, 2) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1"))
-      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2"))
+      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1", nowTs))
+      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2", nowTs))
       tp.expectComplete()
     }
 
     withCurrentEventsByPersistenceId()("my-1", 2, 2) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2"))
+      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2", nowTs))
       tp.expectComplete()
     }
 
     withCurrentEventsByPersistenceId()("my-1", 2, 3) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2"))
-      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3"))
+      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2", nowTs))
+      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3", nowTs))
       tp.expectComplete()
     }
 
     withCurrentEventsByPersistenceId()("my-1", 3, 3) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3"))
+      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3", nowTs))
       tp.expectComplete()
     }
 
     withCurrentEventsByPersistenceId()("my-1", 0, 3) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1"))
-      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2"))
-      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3"))
+      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1", nowTs))
+      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2", nowTs))
+      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3", nowTs))
       tp.expectComplete()
     }
 
     withCurrentEventsByPersistenceId()("my-1", 1, 3) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1"))
-      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2"))
-      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3"))
+      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1", nowTs))
+      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2", nowTs))
+      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3", nowTs))
       tp.expectComplete()
     }
   }
@@ -91,10 +93,10 @@ class CurrentEventsByPersistenceIdTest extends QueryTestSpec {
 
     withCurrentEventsByPersistenceId()("my-1", 1) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1"))
-      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2"))
-      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3"))
-      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4"))
+      tp.expectNext(EventEnvelope(1, "my-1", 1, "a-1", nowTs))
+      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2", nowTs))
+      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3", nowTs))
+      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4", nowTs))
       tp.expectComplete()
     }
 
@@ -102,9 +104,9 @@ class CurrentEventsByPersistenceIdTest extends QueryTestSpec {
 
     withCurrentEventsByPersistenceId()("my-1", 1) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2"))
-      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3"))
-      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4"))
+      tp.expectNext(EventEnvelope(2, "my-1", 2, "a-2", nowTs))
+      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3", nowTs))
+      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4", nowTs))
       tp.expectComplete()
     }
 
@@ -112,8 +114,8 @@ class CurrentEventsByPersistenceIdTest extends QueryTestSpec {
 
     withCurrentEventsByPersistenceId()("my-1", 1) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3"))
-      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4"))
+      tp.expectNext(EventEnvelope(3, "my-1", 3, "a-3", nowTs))
+      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4", nowTs))
       tp.expectComplete()
     }
 
@@ -121,7 +123,7 @@ class CurrentEventsByPersistenceIdTest extends QueryTestSpec {
 
     withCurrentEventsByPersistenceId()("my-1", 1) { tp =>
       tp.request(Int.MaxValue)
-      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4"))
+      tp.expectNext(EventEnvelope(4, "my-1", 4, "a-4", nowTs))
       tp.expectComplete()
     }
 
