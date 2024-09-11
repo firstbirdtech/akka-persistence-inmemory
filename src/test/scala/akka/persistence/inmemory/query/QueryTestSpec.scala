@@ -54,7 +54,7 @@ abstract class QueryTestSpec(config: String = "application.conf") extends TestSp
   implicit lazy val defaultJournal: ActorRef = Persistence(system).journalFor("inmemory-journal")
 
   implicit lazy val defaultReadJournal: InMemoryReadJournal =
-    PersistenceQuery(system).readJournalFor("inmemory-read-journal").asInstanceOf[InMemoryReadJournal]
+    PersistenceQuery(system).readJournalFor[InMemoryReadJournal]("inmemory-read-journal")
 
   def withCurrentPersistenceIds(within: FiniteDuration = 10.seconds)(f: TestSubscriber.Probe[String] => Unit)(implicit
       readJournal: CurrentPersistenceIdsQuery): Unit = {

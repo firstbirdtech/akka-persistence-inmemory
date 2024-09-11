@@ -25,8 +25,7 @@ class StorageExtensionByPropertyTest extends QueryTestSpec("storage-by-property.
 
   private lazy val journalWithSomeKeyspace: ActorRef = Persistence(system).journalFor("inmemory-journal-some-other")
   private lazy val readJournalSomeKeyspace = PersistenceQuery(system)
-    .readJournalFor("inmemory-read-journal-some-other")
-    .asInstanceOf[ReadJournal with CurrentPersistenceIdsQuery]
+    .readJournalFor[CurrentPersistenceIdsQuery]("inmemory-read-journal-some-other")
 
   it should "not find any persistenceIds for different keyspace" in {
     persist("my-1")(journalWithSomeKeyspace)
