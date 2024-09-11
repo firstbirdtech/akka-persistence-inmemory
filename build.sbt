@@ -4,6 +4,7 @@ addCommandAlias("codeVerify", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --
 lazy val akkaPersistenceInmemory = project
   .in(file("."))
   .settings(
+    name                := "akka-persistence-inmemory",
     organization        := "com.firstbird",
     organizationName    := "Firstbird GmbH",
     sonatypeProfileName := "com.firstbird",
