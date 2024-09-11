@@ -1,5 +1,5 @@
 addCommandAlias("codeFmt", ";scalafmtAll;scalafmtSbt;scalafixAll")
-addCommandAlias("codeVerify", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check;headerCheck")
+addCommandAlias("codeVerify", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check")
 
 lazy val akkaPersistenceInmemory = project
   .in(file("."))
