@@ -2,6 +2,7 @@
 
 [![Maven Central](https://img.shields.io/maven-central/v/com.firstbird/akka-persistence-inmemory_2.13.svg?label=Maven%20Central)](https://search.maven.org/search?q=g:%22com.firstbird%22%20AND%20a:%22akka-persistence-inmemory_2.13%22)
 [![Github Actions CI Workflow](https://github.com/firstbirdtech/akka-persistence-inmemory/workflows/CI/badge.svg)](https://github.com/firstbirdtech/akka-persistence-inmemory/workflows/CI/badge.svg)
+[![codecov](https://codecov.io/gh/firstbirdtech/akka-persistence-inmemory/branch/master/graph/badge.svg)](https://codecov.io/gh/firstbirdtech/akka-persistence-inmemory)
 [![License](http://img.shields.io/:license-Apache%202-red.svg)](http://www.apache.org/licenses/LICENSE-2.0.txt)
 
 > This is a fork of [dnvriend/akka-persistence-inmemory](https://github.com/dnvriend/akka-persistence-inmemory), updating Akka to 2.6 and
