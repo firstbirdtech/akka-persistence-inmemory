@@ -1,4 +1,4 @@
-addCommandAlias("codeFmt", ";headerCreate;scalafmtAll;scalafmtSbt;scalafixAll")
+addCommandAlias("codeFmt", ";scalafmtAll;scalafmtSbt;scalafixAll")
 addCommandAlias("codeVerify", ";scalafmtCheckAll;scalafmtSbtCheck;scalafixAll --check;headerCheck")
 
 lazy val akkaPersistenceInmemory = project
@@ -7,11 +7,11 @@ lazy val akkaPersistenceInmemory = project
     organization        := "com.firstbird",
     organizationName    := "Firstbird GmbH",
     sonatypeProfileName := "com.firstbird",
-    description := "A plugin for storing events in an event journal akka-persistence-inmemory",
+    description         := "A plugin for storing events in an event journal akka-persistence-inmemory",
     homepage            := Some(url("https://github.com/firstbirdtech/akka-persistence-inmemory")),
     licenses += ("Apache-2.0", new URL("https://www.apache.org/licenses/LICENSE-2.0.txt")),
-    headerLicense            := Some(HeaderLicense.MIT("2024", "akka-persistence-inmemory contributors")),
-    startYear := Some(2014),
+    headerLicense := Some(HeaderLicense.ALv2("2024", "akka-persistence-inmemory contributors")),
+    startYear     := Some(2014),
     scmInfo := Some(
       ScmInfo(homepage.value.get, "scm:git:https://github.com/firstbirdtech/akka-persistence-inmemory.git")
     ),
@@ -25,10 +25,10 @@ lazy val akkaPersistenceInmemory = project
     // Compiler Settings
     scalaVersion       := "2.13.14",
     crossScalaVersions := Seq("2.13.14", "3.3.3"),
-    semanticdbEnabled := true,
-    semanticdbVersion := scalafixSemanticdb.revision,
+    semanticdbEnabled  := true,
+    semanticdbVersion  := scalafixSemanticdb.revision,
     scalacOptions ++= {
-        val commonOptions = Seq(
+      val commonOptions = Seq(
         "-encoding",
         "UTF-8",
         "-deprecation",
@@ -51,8 +51,8 @@ lazy val akkaPersistenceInmemory = project
     },
 
     // Test Options
-    Test / fork := true,
-    Test / logBuffered := false,
+    Test / fork              := true,
+    Test / logBuffered       := false,
     Test / parallelExecution := false,
     // show full stack traces and test case durations
     Test / testOptions += Tests.Argument("-oDF"),
