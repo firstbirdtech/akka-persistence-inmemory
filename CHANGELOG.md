@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.6.0 (2024-09-16)
+
+First published version of this fork (firstbirdtech/akka-persistence-inmemory).
+  - Support for (only) Scala 2.13 and 3.3.3
+  - Akka 2.6
+
 ## 2.5.15.2 (2019-06-28)
   - Scala 2.11.x, 2.12.x, 2.13.x support
   - Akka 2.5.15 -> 2.5.23
